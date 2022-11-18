@@ -2,9 +2,34 @@ version: '3.8'
 
 services:
   app:
+    container_name: financial-transition-api
     build: .
     entrypoint: ./.docker/start.sh
     ports:
       - 3003:3000
     volumes:
       - .:/home/node/app
+    depends_on:
+      - db
+
+  db:
+    image: postgres:12
+    ports:
+      - 5433:5432
+    container_name: 'financial_db'
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - ./.docker/dbdata:/data/db
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
