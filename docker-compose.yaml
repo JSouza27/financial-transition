@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    entrypoint: ./.docker/start.sh
+    ports:
+      - 3003:3000
+    volumes:
+      - .:/home/node/app
