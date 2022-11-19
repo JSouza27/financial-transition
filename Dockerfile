@@ -1,7 +1,9 @@
-FROM node:16.16.0-slim
+FROM node:16.10-alpine3.14
 
-RUN apt install bash
+RUN apk add --no-cache bash
 
-WORKDIR /home/node/app
+RUN yarn global add @nestjs/cli@9
 
 USER node
+
+WORKDIR /home/node/app

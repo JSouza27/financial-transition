@@ -16,7 +16,7 @@ services:
     image: postgres:12
     ports:
       - 5433:5432
-    container_name: 'financial_db'
+    container_name: 'financialdb'
     restart: always
     environment:
       POSTGRES_USER: ${DB_USERNAME}
