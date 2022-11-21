@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Account } from '../../accounts/entities/account.entity';
 import { User } from '../entities/user.entity';
 import { UsersService } from './users.service';
@@ -13,12 +14,19 @@ const mockUser = {
 
 describe('UsersService', () => {
   let service: UsersService;
+  let repository: Repository<User>;
 
   const mockUsersRepository = {
     create: jest.fn().mockImplementation((dto) => dto),
     save: jest.fn().mockResolvedValue(mockUser),
     find: jest.fn().mockImplementation(() => Promise.resolve([mockUser])),
     findOneBy: jest.fn().mockImplementation(() => Promise.resolve(mockUser)),
+    delete: jest.fn().mockImplementation(() =>
+      Promise.resolve({
+        raw: [],
+        affected: 1,
+      }),
+    ),
   };
 
   beforeEach(async () => {
@@ -33,6 +41,7 @@ describe('UsersService', () => {
     }).compile();
 
     service = module.get<UsersService>(UsersService);
+    repository = module.get<Repository<User>>(getRepositoryToken(User));
   });
 
   describe('test configuration', () => {
@@ -47,8 +56,8 @@ describe('UsersService', () => {
       const response = await service.create(dto);
 
       expect(response).toEqual(mockUser);
-      expect(mockUsersRepository.create).toHaveBeenCalledWith(dto);
-      expect(mockUsersRepository.save).toHaveBeenCalledTimes(1);
+      expect(repository.create).toHaveBeenCalledWith(dto);
+      expect(repository.save).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -57,28 +66,39 @@ describe('UsersService', () => {
 
     expect(response).toEqual([mockUser]);
     expect(response).toHaveLength(1);
-    expect(mockUsersRepository.find).toHaveBeenCalledTimes(1);
+    expect(repository.find).toHaveBeenCalledTimes(1);
   });
 
   it('should find a user by id', async () => {
     const response = await service.findOne('1');
 
     expect(response).toEqual(mockUser);
-    expect(mockUsersRepository.findOneBy).toHaveBeenCalledTimes(1);
+    expect(repository.findOneBy).toHaveBeenCalledTimes(1);
   });
 
   it('should update user', async () => {
     jest.spyOn(service, 'findOne').mockResolvedValueOnce(mockUser);
-    jest
-      .spyOn(mockUsersRepository, 'save')
-      .mockResolvedValueOnce({ username: '@mari2', ...mockUser });
+    jest.spyOn(repository, 'save').mockResolvedValueOnce({
+      id: '1',
+      username: '@mari',
+      password: '',
+      accountId: mockUser.accountId,
+    });
 
     const dto = { username: '@mari' };
     const response = await service.update('1', dto);
-    console.log(response);
 
-    expect(response).toEqual({ username: '@mari', ...mockUser });
+    expect(response).toEqual({ ...mockUser, username: '@mari' });
     expect(service.findOne).toHaveBeenCalledTimes(1);
-    expect(mockUsersRepository.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('should be possible to remove a user', async () => {
+    jest.spyOn(service, 'findOne').mockResolvedValueOnce(mockUser);
+
+    const response = await service.remove('1');
+
+    expect(response).toEqual('Usuário removito com sucesso!');
+    expect(service.findOne).toHaveBeenCalledTimes(1);
+    expect(repository.delete).toHaveBeenCalledTimes(1);
   });
 });

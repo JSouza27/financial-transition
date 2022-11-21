@@ -55,10 +55,25 @@ export class UsersService {
 
     const res = await this.userRepository.save({ ...user, ...updateUserDto });
 
-    return res;
+    const dto = new UserResponseDto();
+
+    dto.accountId = res.accountId;
+    dto.id = res.id;
+    dto.username = res.username;
+
+    return dto;
   }
 
-  async remove(id: string) {
-    return `This action removes a #${id} user`;
+  async remove(id: string): Promise<string> {
+    await this.findOne(id);
+
+    const res = await this.userRepository.delete(id);
+
+    if (!!res.affected) return 'Usuário removito com sucesso!';
+
+    throw new HttpException(
+      'Houve um erro ao remover o usuário.',
+      HttpStatus.BAD_REQUEST,
+    );
   }
 }
