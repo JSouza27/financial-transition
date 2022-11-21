@@ -97,7 +97,7 @@ describe('UsersService', () => {
 
     const response = await service.remove('1');
 
-    expect(response).toEqual('Usuário removito com sucesso!');
+    expect(response).toEqual('Usuário removido com sucesso!');
     expect(service.findOne).toHaveBeenCalledTimes(1);
     expect(repository.delete).toHaveBeenCalledTimes(1);
   });

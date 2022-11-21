@@ -69,7 +69,7 @@ export class UsersService {
 
     const res = await this.userRepository.delete(id);
 
-    if (!!res.affected) return 'Usuário removito com sucesso!';
+    if (!!res.affected) return 'Usuário removido com sucesso!';
 
     throw new HttpException(
       'Houve um erro ao remover o usuário.',
