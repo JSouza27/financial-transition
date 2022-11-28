@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
 import { Account } from '../entities/account.entity';
 import { AccountsService } from './accounts.service';
 
@@ -12,6 +13,7 @@ describe('AccountsService', () => {
     save: jest.fn().mockResolvedValue({ id: '1', balance: 100 }),
     find: jest.fn().mockResolvedValue([{ id: '1', balance: 100 }]),
     findOneBy: jest.fn().mockResolvedValue({ id: '1', balance: 100 }),
+    update: jest.fn().mockResolvedValue({ id: '1', balance: 250 }),
     delete: jest.fn().mockImplementation(() =>
       Promise.resolve({
         raw: [],
@@ -62,6 +64,23 @@ describe('AccountsService', () => {
 
       expect(res).toEqual({ id: '1', balance: 100 });
       expect(repository.findOneBy).toHaveBeenCalledTimes(1);
+    });
+
+    it('should update the account', async () => {
+      const user = new User();
+
+      user.id = '1';
+      user.username = '@mari';
+      user.password = 'Ergo9080@';
+
+      jest
+        .spyOn(repository, 'save')
+        .mockResolvedValueOnce({ id: '1', balance: 250, user });
+
+      const data = { balance: 250 };
+      const res = await service.update('1', data);
+
+      expect(res).toEqual({ id: '1', balance: 250, user });
     });
 
     it('should be remove the account', async () => {

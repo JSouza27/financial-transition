@@ -32,8 +32,18 @@ export class AccountsService {
     return account;
   }
 
-  async update(id: number, updateAccountDto: UpdateAccountDto) {
-    return `This action updates a #${id} account`;
+  async update(
+    id: string,
+    updateAccountDto: UpdateAccountDto,
+  ): Promise<Account> {
+    const userAccount = await this.findOne(id);
+
+    const updatedAccount = await this.accountRepository.save({
+      ...userAccount,
+      updateAccountDto,
+    });
+
+    return updatedAccount;
   }
 
   async remove(id: string): Promise<string> {
