@@ -1,28 +1,44 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  forwardRef,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { UserResponseDto } from '../dto/user-response.dto';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { User } from '../entities/user.entity';
+import { AccountsService } from '../../accounts/service/accounts.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @Inject(forwardRef(() => AccountsService))
+    private readonly accountService: AccountsService,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
-    const user = this.userRepository.create(createUserDto);
-    const res = await this.userRepository.save(user);
+  async create(createUserDto: CreateUserDto) {
+    const account = await this.accountService.create({ balance: 100 });
+    const salt = await bcrypt.genSalt();
+    const hash = await bcrypt.hash(createUserDto.password, salt);
+    const res = await this.userRepository.save({
+      account: account,
+      username: createUserDto.username,
+      password: hash,
+    });
 
     if (!!res) {
       const dto = new UserResponseDto();
 
       dto.id = res.id;
       dto.username = res.username;
-      dto.accountId = res.accountId;
+      dto.account = res.account;
 
       return dto;
     }
@@ -38,13 +54,17 @@ export class UsersService {
   }
 
   async findOne(id: string): Promise<UserResponseDto> {
-    const res = await this.userRepository.findOneBy({ id });
+    const res = await this.userRepository.find({
+      select: { username: true, id: true },
+      relations: { account: true },
+      where: { id },
+    });
 
     if (!res) {
       throw new HttpException('Usuário não encontrado.', HttpStatus.NOT_FOUND);
     }
 
-    return res;
+    return res[0];
   }
 
   async update(
@@ -57,7 +77,7 @@ export class UsersService {
 
     const dto = new UserResponseDto();
 
-    dto.accountId = res.accountId;
+    dto.account = res.account;
     dto.id = res.id;
     dto.username = res.username;
 
@@ -65,9 +85,10 @@ export class UsersService {
   }
 
   async remove(id: string): Promise<string> {
-    await this.findOne(id);
-
+    const user = await this.findOne(id);
     const res = await this.userRepository.delete(id);
+
+    await this.accountService.remove(user.account.id);
 
     if (!!res.affected) return 'Usuário removido com sucesso!';
 

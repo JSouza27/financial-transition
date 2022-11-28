@@ -9,6 +9,6 @@ export class Account {
   @Column({ type: 'double precision' })
   balance: number;
 
-  @OneToOne(() => User, (user) => user.accountId)
+  @OneToOne(() => User, (user) => user.account)
   user: User;
 }
