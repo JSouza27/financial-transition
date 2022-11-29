@@ -40,7 +40,7 @@ export class AccountsService {
 
     const updatedAccount = await this.accountRepository.save({
       ...userAccount,
-      updateAccountDto,
+      ...updateAccountDto,
     });
 
     return updatedAccount;
