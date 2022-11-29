@@ -23,14 +23,21 @@ export class UsersService {
     private readonly accountService: AccountsService,
   ) {}
 
+  protected async encryptPassword(password: string): Promise<string> {
+    const salt = await bcrypt.genSalt();
+    const hash = await bcrypt.hash(password, salt);
+
+    return hash;
+  }
+
   async create(createUserDto: CreateUserDto) {
     const account = await this.accountService.create({ balance: 100 });
-    const salt = await bcrypt.genSalt();
-    const hash = await bcrypt.hash(createUserDto.password, salt);
+    const password = await this.encryptPassword(createUserDto.password);
+
     const res = await this.userRepository.save({
       account: account,
       username: createUserDto.username,
-      password: hash,
+      password,
     });
 
     if (!!res) {
@@ -50,17 +57,20 @@ export class UsersService {
   }
 
   async findAll(): Promise<UserResponseDto[]> {
-    return this.userRepository.find();
+    return this.userRepository.find({
+      select: { username: true, id: true },
+      relations: { account: true },
+    });
   }
 
-  async findOne(id: string): Promise<UserResponseDto> {
+  async findOne(id: string, isPassword?: boolean): Promise<UserResponseDto> {
     const res = await this.userRepository.find({
-      select: { username: true, id: true },
+      select: { username: true, id: true, password: isPassword },
       relations: { account: true },
       where: { id },
     });
 
-    if (!res) {
+    if (!res.length) {
       throw new HttpException('Usuário não encontrado.', HttpStatus.NOT_FOUND);
     }
 
@@ -71,7 +81,17 @@ export class UsersService {
     id: string,
     updateUserDto: UpdateUserDto,
   ): Promise<UserResponseDto> {
-    const user = await this.findOne(id);
+    const user = await this.findOne(id, true);
+
+    if (!user) {
+      throw new HttpException('Usuário não encontrado.', HttpStatus.NOT_FOUND);
+    }
+
+    if (!!updateUserDto.password) {
+      const hash = await this.encryptPassword(updateUserDto.password);
+
+      updateUserDto.password = hash;
+    }
 
     const res = await this.userRepository.save({ ...user, ...updateUserDto });
 
